@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance Tracker — Jeet</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1f2b;
+    --border: #252b38;
+    --accent: #4fffb0;
+    --accent2: #ff6b6b;
+    --accent3: #ffd166;
+    --accent4: #74b9ff;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --glow: rgba(79, 255, 176, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,255,176,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(116,185,255,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 48px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .date-strip {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-top: 6px;
+  }
+
+  .overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s ease 0.1s both;
+  }
+
+  .ov-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ov-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+  }
+
+  .ov-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .ov-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--card-accent, var(--accent));
+    line-height: 1;
+  }
+
+  .ov-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .section {
+    margin-bottom: 36px;
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+
+  .day-col { display: flex; flex-direction: column; gap: 6px; }
+
+  .day-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .day-label.today { color: var(--accent); }
+
+  .cat-block {
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    cursor: default;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+
+  .cat-block.empty {
+    background: var(--surface);
+    border-color: var(--border);
+    opacity: 0.4;
+  }
+
+  .cat-icon { font-size: 14px; line-height: 1; }
+  .cat-hrs {
+    font-size: 9px;
+    margin-top: 3px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 500;
+  }
+
+  .input-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 36px;
+    animation: fadeUp 0.6s ease 0.15s both;
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .input-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--glow);
+  }
+
+  .input-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .input-row input[type="number"] {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    width: 50px;
+  }
+
+  .input-row span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .btn-log {
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-top: 8px;
+    align-self: flex-end;
+    width: 100%;
+  }
+
+  .btn-log:hover { background: #7fffcc; transform: translateY(-1px); }
+
+  .wheel-wrap {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .wheel-svg-wrap { flex: 0 0 auto; }
+
+  .wheel-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    min-width: 160px;
+    justify-content: center;
+    padding-top: 16px;
+  }
+
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-name { color: var(--text); flex: 1; }
+  .legend-pct { color: var(--muted); }
+
+  .stress-section {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+    animation: fadeUp 0.6s ease 0.25s both;
+  }
+
+  .stress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .stress-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .stress-slider {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .stress-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+
+  .mood-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .mood-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .mood-btn:hover, .mood-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--glow);
+  }
+
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 36px;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--muted);
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+
+  .insight-card strong { color: var(--text); }
+  .insight-card .tag {
+    display: inline-block;
+    background: var(--glow);
+    border: 1px solid rgba(79,255,176,0.3);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    margin: 0 2px;
+  }
+
+  .btn-reset {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .day-grid { gap: 4px; }
+    .cat-hrs { display: none; }
+    .cat-icon { font-size: 12px; }
+    .overview { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="eyebrow">⬡ balance.tracker</div>
+    <h1>Your Week,<br><span>In Balance</span></h1>
+    <div class="subtitle">Log hours · see the split · fix the gap</div>
+    <div class="date-strip" id="dateStrip"></div>
+  </header>
+
+  <!-- OVERVIEW CARDS -->
+  <div class="overview">
+    <div class="ov-card" style="--card-accent: var(--accent)">
+      <div class="ov-label">Work Hours</div>
+      <div class="ov-value" id="ovWork">0</div>
+      <div class="ov-sub">target ≤ 45 hrs/wk</div>
+    </div>
+    <div class="ov-card" style="--card-accent: var(--accent4)">
+      <div class="ov-label">Personal Projects</div>
+      <div class="ov-value" id="ovPersonal">0</div>
+      <div class="ov-sub">PWA, side builds</div>
+    </div>
+    <div class="ov-card" style="--card-accent: var(--accent3)">
+      <div class="ov-label">Recovery</div>
+      <div class="ov-value" id="ovRecovery">0</div>
+      <div class="ov-sub">rest + health + family</div>
+    </div>
+    <div class="ov-card" style="--card-accent: var(--accent2)">
+      <div class="ov-label">Balance Score</div>
+      <div class="ov-value" id="ovScore">—</div>
+      <div class="ov-sub">out of 100</div>
+    </div>
+  </div>
+
+  <!-- LOG TODAY -->
+  <div class="input-panel">
+    <div class="section-header" style="margin-bottom: 18px;">
+      <div class="section-title">Log Today</div>
+      <div class="section-line"></div>
+      <div style="font-size:11px;color:var(--muted);" id="logDayLabel"></div>
+    </div>
+    <div class="input-grid">
+      <div class="input-group">
+        <div class="input-label">GM Meetings / Admin</div>
+        <div class="input-row">
+          <div class="input-dot" style="background:#4fffb0"></div>
+          <input type="number" id="inp-work" min="0" max="16" step="0.5" value="0">
+          <span>hrs</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Deep Focus (GM)</div>
+        <div class="input-row">
+          <div class="input-dot" style="background:#00cec9"></div>
+          <input type="number" id="inp-deep" min="0" max="16" step="0.5" value="0">
+          <span>hrs</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Personal Projects</div>
+        <div class="input-row">
+          <div class="input-dot" style="background:#74b9ff"></div>
+          <input type="number" id="inp-personal" min="0" max="12" step="0.5" value="0">
+          <span>hrs</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Learning / Growth</div>
+        <div class="input-row">
+          <div class="input-dot" style="background:#ffd166"></div>
+          <input type="number" id="inp-learn" min="0" max="8" step="0.5" value="0">
+          <span>hrs</span>
+        </div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">Rest / Health / Family</div>
+        <div class="input-row">
+          <div class="input-dot" style="background:#ff6b6b"></div>
+          <input type="number" id="inp-rest" min="0" max="12" step="0.5" value="0">
+          <span>hrs</span>
+        </div>
+      </div>
+      <div class="input-group" style="justify-content: flex-end;">
+        <button class="btn-log" id="logBtn" onclick="logDay()">→ Log Day</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STRESS + MOOD -->
+  <div class="stress-section">
+    <div class="stress-card">
+      <div class="stress-label">Today's Stress Level</div>
+      <input type="range" class="stress-slider" id="stressSlider" min="1" max="10" value="5" oninput="updateStress()">
+      <div class="stress-val" id="stressVal" style="color: var(--accent3)">5 <span style="font-size:13px;color:var(--muted);font-family:'DM Mono'">/ 10</span></div>
+    </div>
+    <div class="stress-card">
+      <div class="stress-label">Today's Mood</div>
+      <div class="mood-row" id="moodRow">
+        <button class="mood-btn" onclick="setMood(this, 'Energized')">🔋 Energized</button>
+        <button class="mood-btn" onclick="setMood(this, 'Neutral')">😐 Neutral</button>
+        <button class="mood-btn" onclick="setMood(this, 'Drained')">😓 Drained</button>
+        <button class="mood-btn" onclick="setMood(this, 'In Flow')">🔥 In Flow</button>
+        <button class="mood-btn" onclick="setMood(this, 'Blocked')">🧱 Blocked</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKLY VIEW -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">This Week</div>
+      <div class="section-line"></div>
+      <button class="btn-reset" onclick="resetWeek()">↺ Reset Week</button>
+    </div>
+    <div class="day-grid" id="dayGrid"></div>
+  </div>
+
+  <!-- BALANCE WHEEL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Balance Wheel</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="wheel-wrap">
+      <div class="wheel-svg-wrap">
+        <svg id="radarSvg" width="220" height="220" viewBox="0 0 220 220"></svg>
+      </div>
+      <div class="wheel-legend" id="wheelLegend"></div>
+    </div>
+  </div>
+
+  <!-- INSIGHT -->
+  <div class="insight-card" id="insightCard">
+    <strong>Start logging your days</strong> to unlock personalized weekly insights.
+    Tap <span class="tag">→ Log Day</span> above to track today's hours across all categories.
+  </div>
+
+</div>
+
+<script>
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const CATS = [
+  { id: 'work',     label: 'GM Meetings',  icon: '📋', color: '#4fffb0' },
+  { id: 'deep',     label: 'Deep Focus',   icon: '🧠', color: '#00cec9' },
+  { id: 'personal', label: 'Projects',     icon: '💻', color: '#74b9ff' },
+  { id: 'learn',    label: 'Learning',     icon: '📚', color: '#ffd166' },
+  { id: 'rest',     label: 'Rest/Family',  icon: '🌿', color: '#ff6b6b' },
+];
+
+function defaultState() {
+  return {
+    week: DAYS.map(d => ({ day: d, entries: {}, stress: null, mood: null })),
+    currentMood: null,
+  };
+}
+
+let state = (() => {
+  try { return JSON.parse(localStorage.getItem('jeet_balance2')) || defaultState(); }
+  catch(e) { return defaultState(); }
+})();
+
+function save() {
+  try { localStorage.setItem('jeet_balance2', JSON.stringify(state)); } catch(e) {}
+}
+
+function getWeekDay() {
+  const d = new Date().getDay(); // 0=Sun
+  return d === 0 ? 6 : d - 1;   // Mon=0 … Sun=6
+}
+
+function init() {
+  const now = new Date();
+  document.getElementById('dateStrip').textContent =
+    now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  document.getElementById('logDayLabel').textContent = DAYS[getWeekDay()];
+  render();
+}
+
+function logDay() {
+  const idx = getWeekDay();
+  state.week[idx].entries = {
+    work:     +document.getElementById('inp-work').value || 0,
+    deep:     +document.getElementById('inp-deep').value || 0,
+    personal: +document.getElementById('inp-personal').value || 0,
+    learn:    +document.getElementById('inp-learn').value || 0,
+    rest:     +document.getElementById('inp-rest').value || 0,
+  };
+  state.week[idx].stress = +document.getElementById('stressSlider').value;
+  state.week[idx].mood   = state.currentMood;
+  save();
+  render();
+
+  const btn = document.getElementById('logBtn');
+  btn.textContent = '✓ Logged!';
+  setTimeout(() => { btn.textContent = '→ Log Day'; }, 1500);
+}
+
+function resetWeek() {
+  if (!confirm('Reset all data for this week?')) return;
+  state.week = DAYS.map(d => ({ day: d, entries: {}, stress: null, mood: null }));
+  save();
+  render();
+}
+
+function updateStress() {
+  const v = document.getElementById('stressSlider').value;
+  const el = document.getElementById('stressVal');
+  const color = v <= 3 ? '#4fffb0' : v <= 6 ? '#ffd166' : '#ff6b6b';
+  el.style.color = color;
+  el.innerHTML = `${v} <span style="font-size:13px;color:var(--muted);font-family:'DM Mono'">/ 10</span>`;
+}
+
+function setMood(btn, mood) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.currentMood = mood;
+}
+
+function totals() {
+  const t = {};
+  CATS.forEach(c => t[c.id] = 0);
+  state.week.forEach(day => CATS.forEach(c => { t[c.id] += (day.entries[c.id] || 0); }));
+  return t;
+}
+
+function render() {
+  const t = totals();
+  const workHrs = t.work + t.deep;
+  const personalHrs = t.personal + t.learn;
+  const restHrs = t.rest;
+  const total = workHrs + personalHrs + restHrs;
+
+  document.getElementById('ovWork').textContent = workHrs;
+  document.getElementById('ovPersonal').textContent = personalHrs;
+  document.getElementById('ovRecovery').textContent = restHrs;
+
+  if (total > 0) {
+    let score = 100;
+    const wr = workHrs / total;
+    const rr = restHrs / total;
+    const pr = personalHrs / total;
+    if (wr > 0.7) score -= 30; else if (wr > 0.6) score -= 15;
+    if (rr < 0.1) score -= 20; else if (rr < 0.15) score -= 10;
+    if (pr < 0.05 && workHrs > 10) score -= 10;
+    document.getElementById('ovScore').textContent = Math.max(0, Math.min(100, Math.round(score)));
+  } else {
+    document.getElementById('ovScore').textContent = '—';
+  }
+
+  // Day grid
+  const grid = document.getElementById('dayGrid');
+  const todayIdx = getWeekDay();
+  grid.innerHTML = '';
+  state.week.forEach((day, i) => {
+    const col = document.createElement('div');
+    col.className = 'day-col';
+    const lbl = document.createElement('div');
+    lbl.className = 'day-label' + (i === todayIdx ? ' today' : '');
+    lbl.textContent = day.day;
+    col.appendChild(lbl);
+
+    CATS.forEach(cat => {
+      const hrs = day.entries[cat.id] || 0;
+      const block = document.createElement('div');
+      block.className = 'cat-block' + (hrs === 0 ? ' empty' : '');
+      if (hrs > 0) {
+        block.style.background = cat.color + '22';
+        block.style.borderColor = cat.color + '55';
+      }
+      block.innerHTML = `<div class="cat-icon">${cat.icon}</div><div class="cat-hrs">${hrs > 0 ? hrs + 'h' : '·'}</div>`;
+      block.title = `${cat.label}: ${hrs}h`;
+      col.appendChild(block);
+    });
+    grid.appendChild(col);
+  });
+
+  // Radar
+  const svg = document.getElementById('radarSvg');
+  svg.innerHTML = '';
+  const cx = 110, cy = 110, maxR = 90, n = CATS.length;
+  const maxHrs = { work: 40, deep: 20, personal: 15, learn: 10, rest: 20 };
+
+  [0.25, 0.5, 0.75, 1].forEach(f => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+    c.setAttribute('r', maxR * f);
+    c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#252b38'); c.setAttribute('stroke-width', '1');
+    svg.appendChild(c);
+  });
+
+  CATS.forEach((cat, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+    line.setAttribute('x2', cx + Math.cos(angle) * maxR);
+    line.setAttribute('y2', cy + Math.sin(angle) * maxR);
+    line.setAttribute('stroke', '#252b38'); line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+
+    // Label
+    const lx = cx + Math.cos(angle) * (maxR + 14);
+    const ly = cy + Math.sin(angle) * (maxR + 14);
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', lx); txt.setAttribute('y', ly + 4);
+    txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-size', '10');
+    txt.setAttribute('fill', '#6b7280'); txt.setAttribute('font-family', 'DM Mono');
+    txt.textContent = cat.icon;
+    svg.appendChild(txt);
+  });
+
+  if (total > 0) {
+    const pts = CATS.map((cat, i) => {
+      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+      const frac = Math.min(1, (t[cat.id] || 0) / (maxHrs[cat.id] || 10));
+      return [cx + Math.cos(angle) * maxR * frac, cy + Math.sin(angle) * maxR * frac];
+    });
+
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', pts.map(p => p.join(',')).join(' '));
+    poly.setAttribute('fill', 'rgba(79,255,176,0.12)');
+    poly.setAttribute('stroke', '#4fffb0'); poly.setAttribute('stroke-width', '2');
+    poly.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(poly);
+
+    pts.forEach((p, i) => {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', p[0]); dot.setAttribute('cy', p[1]);
+      dot.setAttribute('r', '4'); dot.setAttribute('fill', CATS[i].color);
+      svg.appendChild(dot);
+    });
+  } else {
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', cx); txt.setAttribute('y', cy + 5);
+    txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('fill', '#6b7280');
+    txt.setAttribute('font-size', '11'); txt.setAttribute('font-family', 'DM Mono');
+    txt.textContent = 'no data yet';
+    svg.appendChild(txt);
+  }
+
+  // Legend
+  document.getElementById('wheelLegend').innerHTML = CATS.map(cat => {
+    const hrs = t[cat.id] || 0;
+    const pct = total > 0 ? Math.round((hrs / total) * 100) : 0;
+    return `<div class="legend-row">
+      <div class="legend-dot" style="background:${cat.color}"></div>
+      <div class="legend-name">${cat.label}</div>
+      <div class="legend-pct">${hrs}h · ${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // Insight
+  const card = document.getElementById('insightCard');
+  if (total === 0) return;
+
+  const insights = [];
+  if (workHrs > 45) {
+    insights.push(`<strong>⚠ Work creep detected.</strong> You've logged <span class="tag">${workHrs}h</span> this week — above your 45h target. Block a hard stop time and protect it.`);
+  } else if (workHrs >= 38) {
+    insights.push(`<strong>✓ Work load on track.</strong> ${workHrs}h logged — solid effort without burning out.`);
+  }
+  if (restHrs < 7) {
+    insights.push(`<strong>🌿 Recovery gap.</strong> Only <span class="tag">${restHrs}h</span> for rest and family. Sustainable output — especially as a Sub-System Lead candidate — requires deliberate recovery time.`);
+  }
+  if (personalHrs < 3 && workHrs > 20) {
+    insights.push(`<strong>💻 Side project momentum at risk.</strong> Under 3h on personal projects. Try blocking even <span class="tag">45 min/day</span> to keep the Productivity Hub PWA moving.`);
+  }
+  if (insights.length === 0) {
+    insights.push(`<strong>✓ Looking balanced this week.</strong> All areas are getting attention. Keep logging daily — balance is built by habits, not single days.`);
+  }
+
+  card.innerHTML = insights.join('<br><br>');
+}
+
+init();
+</script>
+</body>
+</html>
