@@ -2,4 +2,6 @@ Copyright © 2026 Jeet Bookseller. All Rights Reserved. This code is for demonst
 
 # balance-tracker
 
+https://jeetbookseller.github.io/balance-tracker/balance-tracker.html
+
 self-developed by Claude when asked for work-life balance guidance
